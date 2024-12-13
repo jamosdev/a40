@@ -227,3 +227,120 @@ uint16_t a40_inlineoob(unsigned oob_lt_1536){
     a40cp_enc(&ret, NULL, oob_lt_1536);
     return ret;
 }
+
+
+void a40cstr_generate_sourcecode_for(const char *variablename, 
+    const char *input_string, char *outputbuf, size_t out_sz){
+
+}
+void a40cstr_decode_to_asciibuf(const char *a40_cstr_nullterm,
+    char *outascii, size_t outsz){
+
+}
+size_t a40cstr_strlen(const char *a40_cstr_nullterm){
+	size_t len;
+	if(a40_cstr_nullterm==NULL) return 0;
+	if(a40_cstr_nullterm[0]=='\0') return 0;
+	/*--nonsensical but do it anyway. len=0 because 1byte is
+	0characters as a valid a40 code is 2bytes not 1byte--*/
+	if(a40_cstr_nullterm[1]=='\0') return 0;
+	/*--will eventually exit even if given an invalid string--*/
+	for(len=2;len;len+=2){
+		if(a40_cstr_nullterm[len]=='\0') return len;
+	}
+	return 0;
+}
+char a40cstr_get(const char*a40_cstr_nullterm, size_t virtualIndex){
+	uint16_t cp;
+	char decbuf[3];
+	size_t cp = virtualIndex / 3;
+	size_t offset = virtualIndex - (cp * 3);
+	size_t address = cp * 2;
+	cp = (unsigned char*)a40_cstr_nullterm[address];
+	cp <<= 8;
+	cp |= (unsigned char*)a40_cstr_nullterm[address];
+
+}
+
+
+static uint16_t remap_down(unsigned char inchar,const char *symbols4){
+	unsigned char sym1 = (unsigned char*)symbols4[0];
+	unsigned char sym2 = (unsigned char*)symbols4[1];
+	unsigned char sym3 = (unsigned char*)symbols4[2];
+	unsigned char sym4 = (unsigned char*)symbols4[3];
+	
+	if(inchar >= '0' && inchar <= '9') return 0+(inchar-'0');
+	if(inchar >= 'A' && inchar <= 'Z') return 0+10+(inchar-'A');
+	if(inchar == sym1) return 0+10+26+0;
+	if(inchar == sym2) return 0+10+26+1;
+	if(inchar == sym3) return 0+10+26+2;
+	if(inchar == sym4) return 0+10+26+3;
+	return 0+10+26+0;
+}
+static unsigned char reduce(unsigned char inchar,const char *symbols4){
+	unsigned char sym1 = (unsigned char*)symbols4[0];
+	unsigned char sym2 = (unsigned char*)symbols4[1];
+	unsigned char sym3 = (unsigned char*)symbols4[2];
+	unsigned char sym4 = (unsigned char*)symbols4[3];
+
+	if(inchar >= '0' && inchar <= '9') {
+		return inchar;
+	}
+	if(inchar >= 'A' && inchar <= 'Z') {
+		return inchar;
+	}
+	if(inchar >= 'a' && inchar <= 'z') {
+		return toupper(inchar);
+	}
+	if(inchar == sym1 || inchar == sym2 || inchar == sym3 || inchar == sym4) return inchar;
+	return sym1;
+}
+static unsigned char remap_up(uint16_t element,const char *symbols4){
+	unsigned char sym1 = (unsigned char*)symbols4[0];
+	unsigned char sym2 = (unsigned char*)symbols4[1];
+	unsigned char sym3 = (unsigned char*)symbols4[2];
+	unsigned char sym4 = (unsigned char*)symbols4[3];
+	
+	if(element >= 0 && element <= 9) return '0'+element;
+	if(element >= 10 && element <= 10+25) return 'A'+(element-10);
+	if(element == 10+26+0) return sym1;
+	if(element == 10+26+1) return sym2;
+	if(element == 10+26+2) return sym3;
+	if(element == 10+26+3) return sym4;
+	return sym1;
+}
+void a40_cp2ascii(uint16_t cp, char *buff_sz_3,const char *symbols4){
+	uint16_t val;
+	uint16_t a,b,c;
+
+	val = decode_64k_from_64kb_no_nulls(cp);
+	c = val % 40;
+	val /= 40;
+	b = val % 40;
+	val /= 40;
+	a = val;
+
+	buff_sz_3[0]=remap_up(a,symbols4);
+	buff_sz_3[1]=remap_up(b,symbols4);
+	buff_sz_3[2]=remap_up(c,symbols4);
+}
+char * a40_cp2ascii_nt(uint16_t cp, char *buff_sz_4,const char *symbols4){
+	a40_cp2ascii(cp,buff_sz_4,symbols4);
+	buff_sz_4[3]='\0';
+	
+	return buff_sz_4;
+}
+uint16_t a40_ascii2cp(const char *eats3,const char *symbols4){
+	uint16_t val;
+	uint16_t a,b,c;
+
+	a=remap_down(reduce((unsigned char*)eats3[0],symbols4),symbols4);
+	b=remap_down(reduce((unsigned char*)eats3[1],symbols4),symbols4);
+	c=remap_down(reduce((unsigned char*)eats3[2],symbols4),symbols4);
+	val = a;
+	val *= 40;
+	val += b;
+	val *= 40;
+	val += c;	
+	return encode_64k_to_64kb_no_nulls(val);
+}

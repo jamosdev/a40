@@ -13,7 +13,22 @@ uint16_t decode_64k_from_64kb_no_nulls(uint16_t encodedinput);
 
 
 
+/** as an alternative to SMAZ style text string compression */
+void a40cstr_generate_sourcecode_for(const char *variablename, 
+    const char *input_string, char *outputbuf, size_t out_sz);
+/** null terminated cstring buffer at once decoder */
+void a40cstr_decode_to_asciibuf(const char *a40_cstr_nullterm,
+    char *outascii, size_t outsz);
+/** null terminated cstring encoded strlen */
+size_t a40cstr_strlen(const char *a40_cstr_nullterm);
+/** null terminated cstring encoded virtual iterator */
+char a40cstr_get(const char*a40_cstr_nullterm, size_t virtualIndex);
 
+/** null terminates buff_sz_4 for you so that you can use the
+char* return value (which is buff_sz_4) straight away */
+char * a40_cp2ascii_nt(uint16_t cp, char *buff_sz_4,const char *symbols4);
+void a40_cp2ascii(uint16_t cp, char *buff_sz_3,const char *symbols4);
+uint16_t a40_ascii2cp(const char *eats3,const char *symbols4);
 
 void a40toStr(char*destbuffer,void*a40bytes,size_t numa40cps);
 void strToA40(void*a40bytes,const char *srcStr,size_t numA40Cps);
